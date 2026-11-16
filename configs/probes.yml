@@ -1,0 +1,20 @@
+# configs/probes.yml
+name: probes
+subsets: splits/subsets.json
+ns: [100, 300, 1000, 3000, 10000, 50000]
+subset_seeds: [0, 1, 2]
+
+encoders:            
+  beta0.5: outputs/VAE_b0.5/seed_0           # label -> trained run whose encoder is frozen
+  beta1: outputs/VAE_b1/seed_0
+  beta4: outputs/VAE_b4/seed_0
+
+probe:
+  weight_decay: 1.0e-3
+  steps: 100
+  lr: 1.0e-3
+
+data:                           # must match the split the encoders were trained on
+  batch_size: 128
+  val_size: 10000
+  split_seed: 0

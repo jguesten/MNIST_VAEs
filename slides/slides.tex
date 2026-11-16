@@ -1,0 +1,229 @@
+% slides.tex -- Beamer template for the VAE-on-MNIST project
+% Compile from the slides/ folder:  pdflatex slides.tex  (run twice for the frame counter)
+% Figures are read from ../figures/ ; a grey placeholder is shown until a figure exists.
+
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% ---------------------------------------------------------------------------
+% Packages
+% ---------------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+\graphicspath{{../figures/}}
+
+% ---------------------------------------------------------------------------
+% Look: plain theme, one accent colour, no navigation symbols, frame numbers
+% ---------------------------------------------------------------------------
+\usetheme{default}
+\definecolor{accent}{RGB}{31,94,155}
+\definecolor{muted}{RGB}{110,110,110}
+\setbeamercolor{frametitle}{fg=accent}
+\setbeamercolor{title}{fg=accent}
+\setbeamercolor{structure}{fg=accent}
+\setbeamercolor{footnote}{fg=muted}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamerfont{footnote}{size=\tiny}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{footline}{%
+  \hfill{\color{muted}\scriptsize\insertframenumber\,/\,\inserttotalframenumber}\hspace{1.2em}\vspace{0.8em}}
+
+% ---------------------------------------------------------------------------
+% Helpers
+% ---------------------------------------------------------------------------
+% \fig[width]{file}: include a figure, or a placeholder box if it does not exist yet
+\newcommand{\fig}[2][\linewidth]{%
+  \IfFileExists{../figures/#2}{\includegraphics[width=#1]{#2}}{%
+    \fbox{\parbox[c][0.45\textheight][c]{#1}{\centering\color{muted}\small missing: \texttt{figures/\detokenize{#2}}}}}}
+
+% \takeaway{text}: one-line message at the bottom of a slide
+\newcommand{\takeaway}[1]{\vfill\begin{center}\colorbox{accent!10}{\parbox{0.92\linewidth}{\centering #1}}\end{center}}
+
+% \setup{text}: small line stating beta, d, seeds, data split
+\newcommand{\setup}[1]{{\renewcommand{\thefootnote}{}\footnote[frame]{#1}}}
+
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\E}{\mathbb{E}}
+
+% ---------------------------------------------------------------------------
+% Title
+% ---------------------------------------------------------------------------
+\title{Variational Autoencoders on MNIST}
+\subtitle{Rate--distortion, label efficiency and class-conditional priors}
+\author{Name One \and Name Two \and Name Three}
+\institute{Course name, Institution}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+  \begin{enumerate}
+    \item Model: VAE with Bernoulli decoder, ELBO and $\beta$-weighting
+    \item How $\beta$ trades compression for reconstruction (F1)
+    \item What the latent space encodes (F2)
+    \item Are unsupervised features label-efficient? (F3)
+    \item A class-conditional prior (F4)
+  \end{enumerate}
+\end{frame}
+
+% ===========================================================================
+\section{Model}
+% ===========================================================================
+
+\begin{frame}{The VAE objective}
+  Negative $\beta$-ELBO, minimised per image:
+  \[
+    \mathcal{L}_\beta(x) =
+    \underbrace{-\E_{q_\phi(z|x)}\big[\log p_\theta(x\mid z)\big]}_{\text{distortion } D}
+    + \beta\,
+    \underbrace{\KL\big(q_\phi(z\mid x)\,\|\,p(z)\big)}_{\text{rate } R}
+  \]
+  \begin{itemize}
+    \item Encoder $q_\phi(z|x) = \mathcal{N}(\mu, \operatorname{diag}\sigma^2)$, prior $p(z)=\mathcal{N}(0, I)$
+    \item Reparameterisation: $z = \mu + \sigma\odot\epsilon$, \ $\epsilon\sim\mathcal{N}(0,I)$
+    \item Closed-form rate:
+      $R = \tfrac12\sum_j\big(\mu_j^2 + \sigma_j^2 - 1 - \log\sigma_j^2\big)$
+    \item Bernoulli decoder: $D$ is the binary cross-entropy, in nats
+  \end{itemize}
+  \takeaway{$\beta = 1$ gives the ELBO; other $\beta$ values change the trade-off, not the bound.}
+\end{frame}
+
+% ===========================================================================
+\section{Results}
+% ===========================================================================
+
+\begin{frame}{F1 \;|\; Higher $\beta$ buys compression with reconstruction quality}
+  \begin{columns}[T]
+    \begin{column}{0.58\linewidth}
+      \fig{F1_rate_distortion.pdf}
+    \end{column}
+    \begin{column}{0.4\linewidth}
+      \small
+      \begin{itemize}
+        \item Rate falls from $\approx$\,23 to $\approx$\,8 nats as $\beta$ goes $0.5 \to 4$
+        \item Distortion rises from $\approx$\,79 to $\approx$\,110 nats
+        \item Best ELBO around $\beta \in [0.5, 1]$
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \setup{$d = 10$; $\beta \in \{0.5, 1, 2, 4\}$; test set; mean $\pm$ 1 SD over 3 seeds.}
+  \takeaway{Replace with your main message for F1.}
+\end{frame}
+
+\begin{frame}{F2 \;|\; The latent space organises digits}
+  \begin{columns}[T]
+    \begin{column}{0.48\linewidth}
+      \centering
+      \fig{F2_latent_scatter.pdf}\\[0.3em]
+      {\footnotesize latent means, $d = 2$, $\beta = 1$}
+    \end{column}
+    \begin{column}{0.48\linewidth}
+      \centering
+      \fig{F2_traversals.pdf}\\[0.3em]
+      {\footnotesize traversals, $d = 10$, $\beta \in \{1, 4\}$}
+    \end{column}
+  \end{columns}
+  \setup{Test set; one model per panel (seed 0).}
+  \takeaway{Replace with your main message for F2.}
+\end{frame}
+
+\begin{frame}{Active units}
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+    $\beta$ & active units (of 10) & rate $R$ [nats] \\
+    \midrule
+    0.5 & -- & -- \\
+    1   & -- & -- \\
+    2   & -- & -- \\
+    4   & -- & -- \\
+    \bottomrule
+  \end{tabular}
+  \setup{Active: $\operatorname{Var}_x\!\big(\mu_j(x)\big) > 0.01$; mean $\pm$ SD over 3 seeds.}
+  \takeaway{Fill in from \texttt{figures/d3\_active\_units.csv}.}
+\end{frame}
+
+\begin{frame}{F3 \;|\; Label efficiency: frozen VAE features vs.\ a CNN from scratch}
+  \begin{columns}[T]
+    \begin{column}{0.6\linewidth}
+      \fig{F3_label_efficiency.pdf}
+    \end{column}
+    \begin{column}{0.38\linewidth}
+      \small
+      \begin{itemize}
+        \item Linear probe on $\mu(x)$, encoders frozen
+        \item 3 class-balanced subsets per $n$
+        \item CNN trained on the same subsets
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \setup{$d = 10$; probes for $\beta \in \{1, 4\}$; test accuracy, mean $\pm$ 1 SD over 3 subsets.}
+  \takeaway{Replace with your main message for F3 (where do the curves cross?).}
+\end{frame}
+
+\begin{frame}{Conditional prior}
+  Replace $\mathcal{N}(0, I)$ by a label-conditioned prior with learned class means:
+  \[
+    p_\theta(z \mid y) = \mathcal{N}\big(m(y), I\big),
+    \qquad
+    R = \tfrac12\sum_j\Big(\big(\mu_j - m(y)_j\big)^2 + \sigma_j^2 - 1 - \log\sigma_j^2\Big)
+  \]
+  \begin{itemize}
+    \item $m(0),\dots,m(9)$: one learned vector per class
+    \item Bound on $\log p(x \mid y)$: at most $\log 10 \approx 2.3$ nats better than $\log p(x)$
+  \end{itemize}
+  \takeaway{The label is cheap information: expect structure, not a better ELBO.}
+\end{frame}
+
+\begin{frame}{F4 \;|\; Class-conditional samples}
+  \centering
+  \fig[0.85\linewidth]{F4_cvae_samples.pdf}
+  \setup{$d = 10$, $\beta = 1$; rows: $z \sim \mathcal{N}(m(y), I)$ per class; seed 0.}
+  \takeaway{Replace with your main message for F4.}
+\end{frame}
+
+% ===========================================================================
+\section{Conclusion}
+% ===========================================================================
+
+\begin{frame}{Conclusions}
+  \begin{itemize}
+    \item Finding 1
+    \item Finding 2
+    \item Finding 3
+    \item Limitations and what we would try next
+  \end{itemize}
+  \vfill
+  \small Code and one-command reproduction of all figures:
+  \texttt{github.com/<user>/<repo>}
+\end{frame}
+
+% ===========================================================================
+% Backup slides (after the conclusion, for questions)
+% ===========================================================================
+\appendix
+
+\begin{frame}{Backup: experimental setup}
+  \small
+  \begin{tabular}{ll}
+    \toprule
+    Data & MNIST: 50{,}000 train / 10{,}000 validation (fixed seed) / 10{,}000 test \\
+    Decoder & Bernoulli, sigmoid outputs \\
+    Training & Adam, learning rate $10^{-3}$, batch size 64, 20 epochs \\
+    Seeds & 3 per configuration; mean $\pm$ 1 SD reported \\
+    Test set & used only for final numbers \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\end{document}

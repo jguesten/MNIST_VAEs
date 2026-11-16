@@ -1,0 +1,16 @@
+# configs/cnn_subset.yml
+name: CNN_n100_s0
+seeds: [0]
+
+data:
+  batch_size: 128
+  val_size: 10000
+  split_seed: 0
+  train_subset: {n: 100, seed: 0, path: splits/subsets.json}
+
+model:
+  type: CNN
+
+training:
+  epochs: 30
+  lr: 1.0e-3

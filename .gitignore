@@ -1,0 +1,7 @@
+data/
+outputs/
+figures/
+__pycache__/
+.ipynb_checkpoints/
+*.pt
+.DS_Store
